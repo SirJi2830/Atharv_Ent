@@ -1,0 +1,49 @@
+
+name: Build Atharv Enterprises APKs
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Extract uploaded ZIP
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -iname "*.zip" -print -quit)
+          test -n "$ZIP_FILE"
+          mkdir -p build-source
+          unzip -q "$ZIP_FILE" -d build-source
+
+      - name: Build APKs
+        working-directory: build-source/atharv-android
+        run: gradle --no-daemon assembleDebug assembleRelease
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Atharv-Enterprises-APKs
+          path: |
+            build-source/atharv-android/app/build/outputs/apk/debug/*.apk
+            build-source/atharv-android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
